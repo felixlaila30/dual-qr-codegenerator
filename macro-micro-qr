@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Macro + Minor QR | QR Studio</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        .macro-theme {
+            --accent: #e72d43;
+        }
+
+        .macro-hero {
+            background: linear-gradient(135deg, #fff0f1, #fff8fc);
+        }
+
+        .macro-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+        }
+
+        .qr-output canvas {
+            display: block;
+        }
+
+        @media (max-width: 650px) {
+            .macro-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body class="generator-page macro-theme">
+
+    <header class="generator-header">
+        <a class="brand" href="index.html">✨ QR Studio</a>
+        <a class="back-link" href="index.html">← Back to Home</a>
+    </header>
+
+    <section class="generator-hero macro-hero">
+        <div class="hero-badge">🔴 DUAL QR GENERATOR</div>
+        <h1>Macro + Minor QR Code</h1>
+        <p>
+            Combine your main URL and secondary URL into one creative QR image. ❤️💜
+        </p>
+    </section>
+
+    <main class="generator-container">
+
+        <div class="macro-layout">
+
+            <div class="form-group">
+                <label for="macroURL">🔴 Macro URL (Main Link)</label>
+
+                <input
+                    type="url"
+                    id="macroURL"
+                    placeholder="https://example.com"
+                    autocomplete="url"
+                >
+
+                <small class="form-hint">
+                    This URL will be encoded in the outer QR.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="minorURL">🟣 Minor URL (Center Link)</label>
+
+                <input
+                    type="url"
+                    id="minorURL"
+                    placeholder="https://example.org"
+                    autocomplete="url"
+                >
+
+                <small class="form-hint">
+                    This URL will be encoded in the center QR.
+                </small>
+            </div>
+
+        </div>
+
+        <button class="generator-button" id="generateButton">
+            ✨ Generate Dual QR Code
+        </button>
+
+        <p id="status" class="status-message" role="status"></p>
+
+        <section class="result-area" id="resultArea">
+
+            <h3>Your Dual QR Code 🎉</h3>
+
+            <p class="form-hint">
+                Outer QR: Red | Center QR: Purple
+            </p>
+
+            <div id="qrOutput" class="qr-output"></div>
+
+            <a
+                href="#"
+                id="downloadButton"
+                class="download-button"
+                download="macro-minor-qr.png"
+            >
+                📥 Download QR Image
+            </a>
+
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <p>🔴 Macro + 🟣 Minor = One Creative QR Image</p>
+        <p>Made with 💖 QR Studio</p>
+    </footer>
+
+    <!-- QRCode.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <script>
+        const macroInput = document.getElementById("macroURL");
+        const minorInput = document.getElementById("minorURL");
+        const generateButton = document.getElementById("generateButton");
+        const status = document.getElementById("status");
+        const resultArea = document.getElementById("resultArea");
+        const qrOutput = document.getElementById("qrOutput");
+        const downloadButton = document.getElementById("downloadButton");
+
+        function validURL(value) {
+            try {
+                const parsed = new URL(value.trim());
+
+                return (
+                    (parsed.protocol === "https:" ||
+                     parsed.protocol === "http:") &&
+                    parsed.hostname.includes(".")
+                );
+            } catch {
+                return false;
+            }
+        }
+
+        function createQR(text, color, size) {
+            const holder = document.createElement("div");
+
+            new QRCode(holder, {
+                text: text,
+                width: size,
+                height: size,
+                colorDark: color,
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            return holder;
+        }
+
+        function getQRCanvas(holder) {
+            return new Promise((resolve, reject) => {
+                const started = Date.now();
+
+                function check() {
+                    const canvas = holder.querySelector("canvas");
+
+                    if (canvas) {
+                        resolve(canvas);
+                        return;
+                    }
+
+                    const img = holder.querySelector("img");
+
+                    if (img && img.complete && img.naturalWidth > 0) {
+                        resolve(img);
+                        return;
+                    }
+
+                    if (Date.now() - started > 5000) {
+                        reject(new Error("QR generation timed out."));
+                        return;
+                    }
+
+                    setTimeout(check, 50);
+                }
+
+                check();
+            });
+        }
+
+        async function canvasFromElement(element) {
+            if (element instanceof HTMLCanvasElement) {
+                return element;
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = element.naturalWidth;
+            canvas.height = element.naturalHeight;
+
+            const context = canvas.getContext("2d");
+            context.drawImage(element, 0, 0);
+
+            return canvas;
+        }
+
+        generateButton.addEventListener("click", async () => {
+            const macroURL = macroInput.value.trim();
+            const minorURL = minorInput.value.trim();
+
+            status.textContent = "";
+            resultArea.style.display = "none";
+            qrOutput.replaceChildren();
+
+            if (!validURL(macroURL) || !validURL(minorURL)) {
+                status.textContent =
+                    "Please enter two valid URLs beginning with https:// or http://.";
+                return;
+            }
+
+            generateButton.disabled = true;
+            generateButton.textContent = "⏳ Creating your QR...";
+
+            try {
+                const outerHolder = createQR(macroURL, "#e72d43", 600);
+                const innerHolder = createQR(minorURL, "#823ee0", 180);
+
+                const [outerElement, innerElement] = await Promise.all([
+                    getQRCanvas(outerHolder),
+                    getQRCanvas(innerHolder)
+                ]);
+
+                const outerCanvas = await canvasFromElement(outerElement);
+                const innerCanvas = await canvasFromElement(innerElement);
+
+                const finalCanvas = document.createElement("canvas");
+                finalCanvas.width = 700;
+                finalCanvas.height = 700;
+
+                const ctx = finalCanvas.getContext("2d");
+
+                // White background and quiet zone
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, 700, 700);
+
+                // Outer Macro QR
+                ctx.drawImage(outerCanvas, 50, 50, 600, 600);
+
+                // White center plate
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(255, 255, 190, 190);
+
+                // Purple Minor QR
+                ctx.drawImage(innerCanvas, 265, 265, 170, 170);
+
+                qrOutput.appendChild(finalCanvas);
+
+                downloadButton.href = finalCanvas.toDataURL("image/png");
+
+                resultArea.style.display = "block";
+
+                status.style.color = "#16803c";
+                status.textContent =
+                    "QR image created! Scan-test both links before sharing or printing.";
+
+                resultArea.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+
+            } catch (error) {
+                console.error(error);
+
+                status.style.color = "#b42336";
+                status.textContent =
+                    "QR could not be generated. Check your internet connection and try again.";
+
+            } finally {
+                generateButton.disabled = false;
+                generateButton.textContent = "✨ Generate Dual QR Code";
+            }
+        });
+    </script>
+
+</body>
+</html>
