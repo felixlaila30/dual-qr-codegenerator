@@ -1,6 +1,8 @@
 # Dual QR Code Generator
 
 A Python-based Dual QR Code Generator developed collaboratively.
+## idea source
+IWCNS Workshop and AI
 
 ## Contributors
 - **felixlaila30** — 50% contribution
