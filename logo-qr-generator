@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>QR with Logo | QR Studio</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        .logo-theme {
+            --accent: #823ee0;
+        }
+
+        .logo-hero {
+            background: linear-gradient(135deg, #f4edff, #fff8fc);
+        }
+
+        .logo-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        #logoPreview {
+            display: none;
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: contain;
+            margin-top: 12px;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 5px;
+        }
+
+        @media (max-width: 650px) {
+            .logo-form-grid {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="generator-page logo-theme">
+
+    <header class="generator-header">
+        <a class="brand" href="index.html">✨ QR Studio</a>
+        <a class="back-link" href="index.html">← Back to Home</a>
+    </header>
+
+    <section class="generator-hero logo-hero">
+        <div class="hero-badge">💜 CUSTOM QR GENERATOR</div>
+
+        <h1>Make Your QR Stand Out!</h1>
+
+        <p>
+            Add your link, upload a logo, and choose a QR pattern
+            that matches your brand. 🎨
+        </p>
+    </section>
+
+    <main class="generator-container">
+
+        <div class="form-group">
+            <label for="urlInput">🔗 Website URL</label>
+
+            <input
+                type="url"
+                id="urlInput"
+                placeholder="https://yourwebsite.com"
+                autocomplete="url"
+            >
+
+            <small class="form-hint">
+                Enter the URL that you want your QR code to open.
+            </small>
+        </div>
+
+        <div class="logo-form-grid">
+
+            <div class="form-group">
+                <label for="logoInput">🖼️ Upload Your Logo</label>
+
+                <input
+                    type="file"
+                    id="logoInput"
+                    accept="image/png,image/jpeg,image/webp"
+                >
+
+                <img
+                    id="logoPreview"
+                    alt="Your uploaded logo preview"
+                >
+
+                <small class="form-hint">
+                    PNG or JPG works well. Use a simple logo for better scanning.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="patternSelect">🎨 Choose QR Pattern</label>
+
+                <select id="patternSelect">
+                    <option value="square">◼️ Square Pattern</option>
+                    <option value="dots">⚫ Circle / Dots Pattern</option>
+                    <option value="rounded">🟣 Rounded Pattern</option>
+                </select>
+
+                <small class="form-hint">
+                    Change the pattern to customize your QR appearance.
+                </small>
+            </div>
+
+        </div>
+
+        <div class="form-group">
+            <label for="qrColor">💜 QR Color</label>
+
+            <input
+                type="color"
+                id="qrColor"
+                value="#823ee0"
+            >
+        </div>
+
+        <button class="generator-button" id="generateButton">
+            ✨ Generate My QR Code
+        </button>
+
+        <p id="status" class="status-message" role="status"></p>
+
+        <section id="resultArea" class="result-area">
+
+            <h3>Your Custom QR Code 🎉</h3>
+
+            <div id="qrOutput" class="qr-output"></div>
+
+            <a
+                id="downloadButton"
+                class="download-button"
+                href="#"
+                download="custom-logo-qr.png"
+            >
+                📥 Download QR Code
+            </a>
+
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <p>💜 Your brand. Your style. Your QR code.</p>
+        <p>Made with 💖 QR Studio</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- QR styling library -->
+    <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.9.2/lib/qr-code-styling.js"></script>
+
+    <script>
+        const urlInput = document.getElementById("urlInput");
+        const logoInput = document.getElementById("logoInput");
+        const logoPreview = document.getElementById("logoPreview");
+        const patternSelect = document.getElementById("patternSelect");
+        const qrColor = document.getElementById("qrColor");
+        const generateButton = document.getElementById("generateButton");
+        const status = document.getElementById("status");
+        const resultArea = document.getElementById("resultArea");
+        const qrOutput = document.getElementById("qrOutput");
+        const downloadButton = document.getElementById("downloadButton");
+
+        let uploadedLogo = "";
+
+        function validURL(value) {
+            try {
+                const parsed = new URL(value.trim());
+
+                return (
+                    (parsed.protocol === "https:" ||
+                     parsed.protocol === "http:") &&
+                    parsed.hostname.includes(".")
+                );
+            } catch {
+                return false;
+            }
+        }
+
+        logoInput.addEventListener("change", () => {
+            const file = logoInput.files[0];
+
+            uploadedLogo = "";
+            logoPreview.style.display = "none";
+
+            if (!file) {
+                return;
+            }
+
+            if (file.size > 3 * 1024 * 1024) {
+                status.style.color = "#b42336";
+                status.textContent =
+                    "Please choose a logo smaller than 3 MB.";
+
+                logoInput.value = "";
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = () => {
+                uploadedLogo = reader.result;
+                logoPreview.src = uploadedLogo;
+                logoPreview.style.display = "block";
+                status.textContent = "";
+            };
+
+            reader.onerror = () => {
+                status.textContent = "Could not read the logo file.";
+            };
+
+            reader.readAsDataURL(file);
+        });
+
+        generateButton.addEventListener("click", async () => {
+            const url = urlInput.value.trim();
+
+            status.textContent = "";
+            status.style.color = "#b42336";
+            resultArea.style.display = "none";
+            qrOutput.replaceChildren();
+
+            if (!validURL(url)) {
+                status.textContent =
+                    "Please enter a valid URL beginning with https:// or http://.";
+                return;
+            }
+
+            if (typeof QRCodeStyling === "undefined") {
+                status.textContent =
+                    "QR library could not load. Check your internet connection and refresh.";
+                return;
+            }
+
+            generateButton.disabled = true;
+            generateButton.textContent = "⏳ Creating your QR...";
+
+            try {
+                const patternMap = {
+                    square: "square",
+                    dots: "dots",
+                    rounded: "rounded"
+                };
+
+                const options = {
+                    width: 500,
+                    height: 500,
+                    type: "canvas",
+                    data: url,
+
+                    margin: 20,
+
+                    qrOptions: {
+                        errorCorrectionLevel: "H"
+                    },
+
+                    dotsOptions: {
+                        color: qrColor.value,
+                        type: patternMap[patternSelect.value]
+                    },
+
+                    cornersSquareOptions: {
+                        color: qrColor.value,
+                        type: "square"
+                    },
+
+                    cornersDotOptions: {
+                        color: qrColor.value,
+                        type: "square"
+                    },
+
+                    backgroundOptions: {
+                        color: "#ffffff"
+                    },
+
+                    imageOptions: {
+                        hideBackgroundDots: true,
+                        imageSize: 0.20,
+                        margin: 8,
+                        crossOrigin: "anonymous"
+                    }
+                };
+
+                if (uploadedLogo) {
+                    options.image = uploadedLogo;
+                }
+
+                const qr = new QRCodeStyling(options);
+
+                qr.append(qrOutput);
+
+                // Wait for rendering before enabling download.
+                await new Promise(resolve => setTimeout(resolve, 900));
+
+                const canvas = qrOutput.querySelector("canvas");
+
+                if (!canvas) {
+                    throw new Error("QR canvas not found.");
+                }
+
+                downloadButton.onclick = async event => {
+                    event.preventDefault();
+
+                    try {
+                        await qr.download({
+                            name: "custom-logo-qr",
+                            extension: "png"
+                        });
+                    } catch (error) {
+                        console.error(error);
+                        status.textContent =
+                            "Download failed. Please generate the QR again.";
+                    }
+                };
+
+                resultArea.style.display = "block";
+
+                status.style.color = "#16803c";
+                status.textContent =
+                    "Your QR is ready! Scan it with a phone before sharing.";
+
+                resultArea.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+
+            } catch (error) {
+                console.error(error);
+
+                status.style.color = "#b42336";
+                status.textContent =
+                    "QR generation failed. Check your internet connection and try again.";
+
+            } finally {
+                generateButton.disabled = false;
+                generateButton.textContent = "✨ Generate My QR Code";
+            }
+        });
+    </script>
+
+</body>
+</html>
